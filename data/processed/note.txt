@@ -1,0 +1,4 @@
+Modified versions of the raw data (e.g., tidying and processing, whether in R or manually) should be saved here.
+
+Data, codebooks, and RMarkdown scripts are provided are provided as an example of good project organisation. They come from Hughes, Cummins & Hussey (2022, experiment 1).  
+

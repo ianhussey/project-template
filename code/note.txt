@@ -1,0 +1,5 @@
+All code for processing, analyses, plotting etc should go here.
+
+Data, codebooks, and RMarkdown scripts are provided are provided as an example of good project organisation. They come from Hughes, Cummins & Hussey (2022, experiment 1).
+
+This project template uses RMarkdown ".Rmd" files over standard .R script files. RMarkdown files can create reproducible .html reports by opening the .Rmd and clicking the 'knit' button in RStudio. To learn about RMarkdown and why it's great, see [here](https://psyteachr.github.io/analysis-v2/starting-with-r-markdown.html). 

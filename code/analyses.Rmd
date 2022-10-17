@@ -1,0 +1,109 @@
+---
+title: "Replication of Payne et al. (2013, experiment 2)"
+subtitle: "Analyses"
+author: "Ian Hussey & Jamie Cummins"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r include=FALSE}
+
+# set options for knitr output
+knitr::opts_chunk$set(message = FALSE, 
+                      warning = FALSE)
+
+# turn off scientific notation so that p values print nicely
+options(scipen=999)
+
+```
+
+```{r setup, message=FALSE, warning=FALSE}
+
+# dependencies
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(Partiallyoverlapping)
+library(janitor)
+
+# function to round all numeric vars in a data frame
+round_df <- function(df, n_digits = 3) {
+  df %>% mutate_if(is.numeric, janitor::round_half_up, digits = n_digits)
+}
+
+# get data 
+data_processed <- read_csv("../data/processed/data_processed_participant_level.csv")
+
+# exclusions
+data_processed_exclusions <- data_processed %>%
+  filter(complete_data == TRUE)
+
+```
+
+# Demographics
+
+Analytic sample after exclusions.
+
+```{r age and gender}
+
+# Gender
+data_processed_exclusions %>%
+  mutate(gender = tolower(gender)) %>%
+  dplyr::count(gender) %>%
+  kable() %>%  # print nicer looking table
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+# Age mean and SD
+data_processed_exclusions %>%
+  mutate(age = as.numeric(as.character(age))) %>%
+  summarise("age (mean)" = mean(age), "age (standard deviation)" = sd(age)) %>%
+  round_df(2) %>%
+  kable() %>%  # print nicer looking table
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+```
+
+# Hypothesis tests
+
+## Hypothesis 1: Magnitude of Standard AMP effect compared to the skip-AMP effect
+
+Payne et al. hypothesized that, if participants are influence-aware in the AMP, then AMP effects in the standard AMP should be larger than those of the skip AMP.
+
+Some participants may skip all trials of the skip AMP, and thus have no score. While they could simply be excluded in order to run a paired samples t-test, these values are Missing Not At Random - indeed, they are missing because of their extremely high influence rate. As such, their exclusion would distort results. 
+
+In order to overcome this, we employed a "partially overlapping t test". Specifically, Derrick, Toher & White (2017) developed a method to assess partially overlapping samples. That is, neither a dependent nor independent t test, but a mixed t test containing some independent and some dependent data. Participants who demonstrated an influence rate of close to 100% have missing skip AMP effects. Their corresponding AMP effects are entered as independent data. Participants that have both AMP and skip AMP data are entered as dependent.
+
+```{r}
+
+# subset data
+data_subset <- data_processed_exclusions %>%
+  select(AMP_effect_positive_negative, skip_AMP_effect_positive_negative) 
+
+Partover.test(x1 = pull(filter(data_subset, is.na(skip_AMP_effect_positive_negative)),
+                        AMP_effect_positive_negative),
+              x2 = pull(filter(data_subset, is.na(AMP_effect_positive_negative)),
+                        skip_AMP_effect_positive_negative),
+              x3 = pull(na.omit(data_subset), 
+                        AMP_effect_positive_negative), 
+              x4 = pull(na.omit(data_subset), 
+                        skip_AMP_effect_positive_negative),
+              var.equal = FALSE) %>%
+  unlist(.) %>%
+  data.frame(value = .) %>%
+  rownames_to_column(var = "key") %>%
+  spread(key, value) %>%
+  mutate(t = round(statistic, 2),
+         df = round(parameter, 2),
+         difference_in_means = round(estimate, 2),
+         p.value = as.character(p.value)) %>%
+  select(t, df, p = p.value, difference_in_means) %>%
+  kable() %>%  # print nicer looking table
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+```
